@@ -48,7 +48,9 @@ int load_config_file(char *username, int *port) {
         if (strncmp(line, "username=", 9) == 0) {
             strncpy(username, line + 9, USERNAME_LEN);
             username[USERNAME_LEN - 1] = '\0';
-            found_username = 1;
+            if (username[0] != '\0') {
+                found_username = 1;
+            }
         } else if (strncmp(line, "port=", 5) == 0) {
             *port = atoi(line + 5);
             found_port = 1;
