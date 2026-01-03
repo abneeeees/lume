@@ -5,7 +5,8 @@
 #include "../include/network.h"
 #include "../include/ui.h"
 
-int main(int argc, char *const argv[]) {
+// cppcheck-suppress constParameter
+int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <username> <tcp_port>\n", "lume");
         return 1;
