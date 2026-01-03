@@ -18,6 +18,22 @@ A lightweight, terminal-based peer-to-peer (P2P) chat application written in C.
 
 ## Installation
 
+### Quick Install (Debian/Ubuntu)
+
+1. Download the latest `lume.deb` package from the [Releases](https://github.com/jorgegarcia33/lume/releases) section.
+2. Install the package using:
+   ```bash
+   sudo apt install ./lume.deb
+   ```
+3. Launch the application:
+   ```bash
+   lume <username> <port>
+   ```
+
+### Build from Source
+
+If you prefer to build the project manually:
+
 ```bash
 make
 sudo make install
