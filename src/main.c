@@ -72,14 +72,14 @@ int main(int argc, char *argv[]) {
         app_state.local_username[USERNAME_LEN - 1] = '\0';
         app_state.local_tcp_port = atoi(argv[2]);
 
-    } else if (load_config_file(config_username, &config_port)) {
-        // 2️⃣ Fallback to config file
+    } else if (argc == 1 && load_config_file(config_username, &config_port)) {
+        // 2️⃣ Fallback to config file when no CLI arguments are provided
         strncpy(app_state.local_username, config_username, USERNAME_LEN);
         app_state.local_username[USERNAME_LEN - 1] = '\0';
         app_state.local_tcp_port = config_port;
 
     } else {
-        // 3️⃣ Neither args nor config available
+        // 3️⃣ Invalid args or no config available
         fprintf(stderr, "Usage: %s <username> <tcp_port>\n", "lume");
         return 1;
     }
