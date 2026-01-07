@@ -133,13 +133,50 @@ void log_message(const char *fmt, ...) {
 }
 
 void show_help() {
-    log_message("Available commands:");
-    log_message("  /file <path>  - Send a file to the selected peer");
-    log_message("  /help         - Show this help message");
-    log_message("");
-    log_message("Controls:");
-    log_message("  UP/DOWN       - Select peer");
-    log_message("  ESC           - Quit");
+    pthread_mutex_lock(&app_state.chat_mutex);
+
+    // Add spacing before help message
+    wprintw(app_state.win_chat, "\n");
+
+    // Print help header with color
+    wattron(app_state.win_chat, COLOR_PAIR(2) | A_BOLD);
+    wprintw(app_state.win_chat, "Available commands:\n");
+    wattroff(app_state.win_chat, COLOR_PAIR(2) | A_BOLD);
+
+    // Print commands with color
+    wattron(app_state.win_chat, COLOR_PAIR(3));
+    wprintw(app_state.win_chat, "  /file <path>");
+    wattroff(app_state.win_chat, COLOR_PAIR(3));
+    wprintw(app_state.win_chat, "  - Send a file to the selected peer\n");
+
+    wattron(app_state.win_chat, COLOR_PAIR(3));
+    wprintw(app_state.win_chat, "  /help");
+    wattroff(app_state.win_chat, COLOR_PAIR(3));
+    wprintw(app_state.win_chat, "         - Show this help message\n");
+
+    wprintw(app_state.win_chat, "\n");
+
+    // Print controls header with color
+    wattron(app_state.win_chat, COLOR_PAIR(2) | A_BOLD);
+    wprintw(app_state.win_chat, "Controls:\n");
+    wattroff(app_state.win_chat, COLOR_PAIR(2) | A_BOLD);
+
+    // Print controls with color
+    wattron(app_state.win_chat, COLOR_PAIR(4));
+    wprintw(app_state.win_chat, "  UP/DOWN");
+    wattroff(app_state.win_chat, COLOR_PAIR(4));
+    wprintw(app_state.win_chat, "       - Select peer\n");
+
+    wattron(app_state.win_chat, COLOR_PAIR(4));
+    wprintw(app_state.win_chat, "  ESC");
+    wattroff(app_state.win_chat, COLOR_PAIR(4));
+    wprintw(app_state.win_chat, "           - Quit\n");
+
+    // Add spacing after help message
+    wprintw(app_state.win_chat, "\n");
+
+    wrefresh(app_state.win_chat);
+    pthread_mutex_unlock(&app_state.chat_mutex);
 }
 
 void handle_input() {
