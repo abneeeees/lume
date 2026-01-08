@@ -39,6 +39,7 @@ typedef struct {
     size_t file_size;
 } FileMetadata;
 
+int get_local_ip(char *ip_buffer, size_t buffer_size);
 void init_network_threads();
 void send_text_message(int peer_index, const char *msg);
 void send_file(int peer_index, const char *filepath);

@@ -62,17 +62,45 @@ void draw_interface() {
 
     wclear(app_state.win_header);
     box(app_state.win_header, 0, 0);
-    mvwprintw(app_state.win_header, 1, 2, "Lume - %s:%d", app_state.local_username, app_state.local_tcp_port);
+
+    int max_y, max_x;
+    getmaxyx(app_state.win_header, max_y, max_x);
+    (void)max_y;  // Unused, but needed for getmaxyx
+
+    // Display local user info with IP address
+    mvwprintw(app_state.win_header, 1, 2, "Lume - %s [%s:%d]",
+              app_state.local_username,
+              app_state.local_ip,
+              app_state.local_tcp_port);
 
     if (app_state.peer_count > 0) {
         if (app_state.selected_peer_index == -1) app_state.selected_peer_index = 0;
         if (app_state.selected_peer_index >= app_state.peer_count) app_state.selected_peer_index = 0;
 
         Peer selected = app_state.peers[app_state.selected_peer_index];
-        char *ip_str = inet_ntoa(selected.ip_addr);
+        char ip_str[INET_ADDRSTRLEN];
+        if (inet_ntop(AF_INET, &selected.ip_addr, ip_str, sizeof(ip_str)) == NULL) {
+            strncpy(ip_str, "?", sizeof(ip_str));
+            ip_str[sizeof(ip_str) - 1] = '\0';
+        }
 
         wattron(app_state.win_header, COLOR_PAIR(3));
-        mvwprintw(app_state.win_header, 1, 35, "To: %s [%s:%d] (%d/%d)",
+
+        // Calculate length of local user info to prevent overlap
+        int local_info_len = snprintf(NULL, 0, "Lume - %s [%s:%d]",
+                                      app_state.local_username,
+                                      app_state.local_ip,
+                                      app_state.local_tcp_port);
+
+        // Position peer info with safe spacing (at least 5 chars gap)
+        int peer_col = local_info_len + 7;
+
+        // Fallback to midpoint if calculated position is too far right
+        if (peer_col > max_x / 2) {
+            peer_col = max_x / 2;
+        }
+
+        mvwprintw(app_state.win_header, 1, peer_col, "To: %s [%s:%d] (%d/%d)",
             selected.username,
             ip_str,
             selected.tcp_port,
@@ -81,7 +109,13 @@ void draw_interface() {
         wattroff(app_state.win_header, COLOR_PAIR(3));
     } else {
         wattron(app_state.win_header, COLOR_PAIR(2));
-        mvwprintw(app_state.win_header, 1, 40, "Scanning for peers...");
+        // Right-align "Scanning for peers..." to prevent overlap
+        const char *scan_msg = "Scanning for peers...";
+        int scan_col = max_x - strlen(scan_msg) - 3;
+        if (scan_col < 2) {
+            scan_col = 2;
+        }
+        mvwprintw(app_state.win_header, 1, scan_col, "%s", scan_msg);
         wattroff(app_state.win_header, COLOR_PAIR(2));
     }
     wrefresh(app_state.win_header);

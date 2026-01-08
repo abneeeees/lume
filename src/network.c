@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
@@ -18,6 +19,39 @@ static ssize_t send_all(int sock, const void *buf, size_t len) {
         total += n;
     }
     return total;
+}
+
+int get_local_ip(char *ip_buffer, size_t buffer_size) {
+    struct ifaddrs *ifaddr, *ifa;
+    int found = 0;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        return 0;
+    }
+
+    // Look for first non-loopback IPv4 address
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) continue;
+
+        if (ifa->ifa_addr->sa_family == AF_INET) {
+            struct sockaddr_in *addr = (struct sockaddr_in *)ifa->ifa_addr;
+            char ip[INET_ADDRSTRLEN];
+
+            if (inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(ip)) == NULL) {
+                continue;
+            }
+            // Skip loopback addresses
+            if (strcmp(ip, "127.0.0.1") != 0) {
+                strncpy(ip_buffer, ip, buffer_size - 1);
+                ip_buffer[buffer_size - 1] = '\0';
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return found;
 }
 
 void *beacon_sender(void *arg) {
@@ -128,7 +162,7 @@ void *connection_handler(void *arg) {
         } else if (header.type == MSG_FILE_METADATA) {
             FileMetadata meta;
             if (recv(sock, &meta, sizeof(meta), MSG_WAITALL) != sizeof(meta)) break;
-            
+
             char *filename = strrchr(meta.filename, '/');
             if (filename) filename++;
             else filename = meta.filename;
@@ -143,9 +177,9 @@ void *connection_handler(void *arg) {
                     MessagePacket chunk_header;
                     if (recv(sock, &chunk_header, sizeof(chunk_header), MSG_WAITALL) != sizeof(chunk_header)) break;
                     if (chunk_header.type != MSG_FILE_CHUNK) break;
-                    
+
                     if ((size_t)recv(sock, buffer, chunk_header.payload_len, MSG_WAITALL) != chunk_header.payload_len) break;
-                    
+
                     write(fd, buffer, chunk_header.payload_len);
                     total_received += chunk_header.payload_len;
                 }

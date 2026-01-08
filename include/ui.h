@@ -8,6 +8,7 @@
 typedef struct {
     char local_username[USERNAME_LEN];
     int local_tcp_port;
+    char local_ip[16];
 
     Peer peers[MAX_PEERS];
     int peer_count;
