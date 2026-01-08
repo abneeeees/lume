@@ -184,8 +184,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Get local IP address
-    if (!get_local_ip(app_state.local_ip, sizeof(app_state.local_ip)))
+    if (!get_local_ip(app_state.local_ip, sizeof(app_state.local_ip))) {
         strncpy(app_state.local_ip, "unknown", sizeof(app_state.local_ip));
+    }
 
     init_ui();
     init_network_threads();
