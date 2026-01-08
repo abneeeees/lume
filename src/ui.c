@@ -96,6 +96,9 @@ void draw_interface() {
         // Center "Scanning for peers..." properly
         const char *scan_msg = "Scanning for peers...";
         int scan_col = max_x - strlen(scan_msg) - 3;
+        if (scan_col < 2) {
+            scan_col = 2;
+        }
         mvwprintw(app_state.win_header, 1, scan_col, "%s", scan_msg);
         wattroff(app_state.win_header, COLOR_PAIR(2));
     }
