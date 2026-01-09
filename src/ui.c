@@ -99,7 +99,7 @@ void draw_interface() {
         // Right align peer message to prevent overlap
         int peer_col = (max_x-local_info_len)-2;
         
-        mvwprintw(app_state.win_header, 1, peer_col, peer_message);
+        mvwprintw(app_state.win_header, 1, peer_col, "%s", peer_message);
         wattroff(app_state.win_header, COLOR_PAIR(3));
     } else {
         wattron(app_state.win_header, COLOR_PAIR(2));
