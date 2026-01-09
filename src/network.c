@@ -23,8 +23,9 @@ static ssize_t send_all(int sock, const void *buf, size_t len) {
 
 void send_file_response(int sock, int accepted) {
     MessagePacket response;
+    memset(&response, 0, sizeof(response));
     response.type = accepted ? MSG_FILE_ACCEPT : MSG_FILE_REJECT;
-    strncpy(response.sender_name, app_state.local_username, USERNAME_LEN);
+    strncpy(response.sender_name, app_state.local_username, USERNAME_LEN - 1);
     response.payload_len = 0;
     send_all(sock, &response, sizeof(response));
 }
@@ -170,6 +171,7 @@ void *connection_handler(void *arg) {
         } else if (header.type == MSG_FILE_METADATA) {
             FileMetadata meta;
             if (recv(sock, &meta, sizeof(meta), MSG_WAITALL) != sizeof(meta)) break;
+            meta.filename[255] = '\0'; // Ensure null termination
 
             char *filename = strrchr(meta.filename, '/');
             if (filename) filename++;
@@ -178,15 +180,17 @@ void *connection_handler(void *arg) {
             // Set up pending transfer
             pthread_mutex_lock(&app_state.file_transfer_mutex);
             app_state.pending_file_transfer = 1;
-            strncpy(app_state.pending_sender, header.sender_name, USERNAME_LEN);
-            strncpy(app_state.pending_filename, filename, 256);
+            memset(app_state.pending_sender, 0, USERNAME_LEN);
+            strncpy(app_state.pending_sender, header.sender_name, USERNAME_LEN - 1);
+            memset(app_state.pending_filename, 0, 256);
+            strncpy(app_state.pending_filename, filename, 255);
             app_state.pending_filesize = meta.file_size;
             app_state.pending_sock = sock;
             app_state.pending_transfer_time = time(NULL);
             pthread_mutex_unlock(&app_state.file_transfer_mutex);
 
             // Show prompt to user
-            show_file_prompt(header.sender_name, filename, meta.file_size);
+            show_file_prompt(app_state.pending_sender, app_state.pending_filename, meta.file_size);
 
             // Wait for user decision (max 30 seconds)
             int decision = 0;
@@ -358,12 +362,14 @@ void send_file(int peer_index, const char *filepath) {
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
         MessagePacket header;
+        memset(&header, 0, sizeof(header));
         header.type = MSG_FILE_METADATA;
-        strncpy(header.sender_name, app_state.local_username, USERNAME_LEN);
+        strncpy(header.sender_name, app_state.local_username, USERNAME_LEN - 1);
         header.payload_len = sizeof(FileMetadata);
         send_all(sock, &header, sizeof(header));
 
         FileMetadata meta;
+        memset(&meta, 0, sizeof(meta));
         strncpy(meta.filename, filepath, 255);
         meta.file_size = fsize;
         send_all(sock, &meta, sizeof(meta));
@@ -380,8 +386,9 @@ void send_file(int peer_index, const char *filepath) {
                 char buffer[CHUNK_SIZE];
                 ssize_t bytes_read;
                 while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {
+                    memset(&header, 0, sizeof(header));
                     header.type = MSG_FILE_CHUNK;
-                    strncpy(header.sender_name, app_state.local_username, USERNAME_LEN);
+                    strncpy(header.sender_name, app_state.local_username, USERNAME_LEN - 1);
                     header.payload_len = bytes_read;
                     if (send_all(sock, &header, sizeof(header)) <= 0) break;
                     if (send_all(sock, buffer, bytes_read) <= 0) break;

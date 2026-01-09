@@ -3,6 +3,7 @@
 
 #include <netinet/in.h>
 #include <time.h>
+#include <stdint.h>
 
 #define BROADCAST_PORT 9000
 #define BROADCAST_IP "255.255.255.255"
