@@ -350,41 +350,54 @@ void handle_input() {
                 }
 
             } else if (ch == '\t') {
-                // Basic autocomplete for "/file <prefix>"
-                if (strncmp(input_buf, "/file ", 6) != 0) {
-                    continue;
-                }
+                // Autocomplete for "/file [path/to/]prefix"
+                if (strncmp(input_buf, "/file ", 6) == 0) {
+                    const char *full_path = input_buf + 6;
+                    char dir_path[256] = ".";
+                    const char *file_prefix = full_path;
 
-                const char *prefix = input_buf + 6;
-                size_t prefix_len = strlen(prefix);
-
-                DIR *dir = opendir(".");
-                if (!dir) {
-                    continue;
-                }
-
-                struct dirent *entry;
-                const char *match = NULL;
-
-                while ((entry = readdir(dir)) != NULL) {
-                    if (strncmp(entry->d_name, prefix, prefix_len) == 0) {
-                        if (match != NULL) {
-                            // More than one match → abort
-                            match = NULL;
-                            break;
+                    // Separate directory and prefix
+                    char *last_slash = strrchr(full_path, '/');
+                    if (last_slash) {
+                        size_t dir_len = (size_t)(last_slash - full_path);
+                        if (dir_len == 0) { // Case: /file /prefix
+                            strcpy(dir_path, "/");
+                        } else if (dir_len < sizeof(dir_path)) {
+                            strncpy(dir_path, full_path, dir_len);
+                            dir_path[dir_len] = '\0';
                         }
-                        match = entry->d_name;
+                        file_prefix = last_slash + 1;
                     }
-                }
-                closedir(dir);
 
-                if (match != NULL) {
-                    const char *suffix = match + prefix_len;
-                    size_t suffix_len = strlen(suffix);
+                    size_t file_prefix_len = strlen(file_prefix);
+                    DIR *dir = opendir(dir_path);
+                    if (dir) {
+                        struct dirent *entry;
+                        char match_name[256] = {0};
+                        int match_count = 0;
 
-                    if (input_pos + suffix_len < sizeof(input_buf)) {
-                        strcpy(input_buf + input_pos, suffix);
-                        input_pos += suffix_len;
+                        while ((entry = readdir(dir)) != NULL) {
+                            if (strncmp(entry->d_name, file_prefix, file_prefix_len) == 0) {
+                                // Skip "." and ".." unless explicitly requested
+                                if (file_prefix_len == 0 && (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)) {
+                                    continue;
+                                }
+                                match_count++;
+                                if (match_count > 1) break;
+                                strncpy(match_name, entry->d_name, sizeof(match_name) - 1);
+                            }
+                        }
+                        closedir(dir);
+
+                        if (match_count == 1) {
+                            const char *suffix = match_name + file_prefix_len;
+                            size_t suffix_len = strlen(suffix);
+
+                            if (input_pos + suffix_len < sizeof(input_buf)) {
+                                strcpy(input_buf + input_pos, suffix);
+                                input_pos += (int)suffix_len;
+                            }
+                        }
                     }
                 }
             } else if (input_pos < 255 && ch >= 32 && ch <= 126) {
